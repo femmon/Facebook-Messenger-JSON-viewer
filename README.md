@@ -1,3 +1,7 @@
+# Fork Changes:
+* Included a server `node .\server.mjs` to display images. Use by placing the Facebook `messages` folder at the project root. Probably need to change `hostname` too.
+* Decode non-latin characters.
+
 # Facebook-Messenger-JSON-viewer
 If you've downloaded your Facebook data in JSON format, this tool lets you read the chats more intuitively.
 Useful if you've deleted Facebook, but downloaded your JSON data.

@@ -19,7 +19,7 @@ ReactDOM.render(
 function handleSubmit(){
   ReactDOM.render(e(ChatArea), document.querySelector('#chat-area'))
   const domChat = document.querySelector('#chat-display');
-  ReactDOM.render(e(ChatBubble, cleanedData.msgs), domChat);
+  ReactDOM.render(e(ChatBubble), domChat);
   addChatTitle();
 }
 
@@ -38,10 +38,29 @@ function readJSON(file) {
   
 }
 
+function decode(s) {
+  let d = new TextDecoder;
+  let a = s.split('').map(r => r.charCodeAt());
+  return d.decode(new Uint8Array(a));
+}
+
 function cleanData(raw) {
-  var participants = raw.participants.map(person => person.name);
+  var participants = raw.participants.map(person => person.name).map(name => {
+    return decode(name)
+  });
   var title = raw.title;
-  var msgs = raw.messages.reverse();
+  var msgs = raw.messages.map(msg => {
+    msg.sender_name = decode(msg.sender_name)
+
+    if (msg.content) {
+      msg.content = decode(msg.content)
+    }
+    if (msg.share && msg.share.share_text) {
+      msg.share.share_text = decode(msg.share.share_text)
+    }
+    return msg
+  });
+
   var cleaned = {
     "participants": participants,
     "title": title,
@@ -90,12 +109,22 @@ function radioClick(name) {
 
 class ChatBubble extends React.Component {
   generateBubbles(msg) {
+    const photos = msg.photos && msg.photos.length > 0 ? msg.photos.map((photo, i) => (
+      e('img', { src: photo.uri.startsWith('messages') ? photo.uri.slice(8) : photo.uri, style: { height: '100px' }, key: i })
+    )) : null
+    const content = e('p', { style: { margin: 0 } },
+      msg.content + (msg.share && msg.share.link ? ': ' + msg.share.link : ''),
+      msg.share && msg.share.share_text ? e('br') : null,
+      msg.share && msg.share.share_text ? msg.share.share_text: null,
+      msg.photos && msg.photos.length > 0 ? e('br') : null,
+      photos
+    )
     if (msg.sender_name == myName) {
       return (
         e(
           'div', {className: "message-container"}, 
           e('div', {className: "name-right"}, msg.sender_name),
-          e('div', {className: "bubble-right"}, msg.content),
+          e('div', {className: "bubble-right"}, content),
           e('span', {className: "tooltip-right"}, timeConverter(msg.timestamp_ms))
         )
       );
@@ -104,7 +133,7 @@ class ChatBubble extends React.Component {
         e(
           'div', {className: "message-container"}, 
           e('div', {className: "name-left"}, msg.sender_name),
-          e('div', {className: "bubble-left"}, msg.content),
+          e('div', {className: "bubble-left"}, content),
           e('span', {className: "tooltip-left"}, timeConverter(msg.timestamp_ms))
         )
       );
